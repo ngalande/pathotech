@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   TouchableOpacity,
@@ -24,6 +24,13 @@ export default function ({ navigation }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    auth.onAuthStateChanged(user => {
+      if(user){
+        console.log(user)
+      }
+    })
+  },[])
   async function login() {
     setLoading(true);
     await signInWithEmailAndPassword(auth, email, password).catch(function (error) {
@@ -65,10 +72,10 @@ export default function ({ navigation }) {
             <Image
               resizeMode="contain"
               style={{
-                height: 200,
-                width: 200,
+                height: 300,
+                width: 300,
               }}
-              source={require("../../../assets/login.png")}
+              source={require("../../../assets/icon.png")}
             />
           </View>
           <View

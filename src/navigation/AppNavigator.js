@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { initializeApp, getApps } from "firebase/app";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -18,6 +18,7 @@ import Login from "../screens/auth/Login";
 import Register from "../screens/auth/Register";
 import ForgetPassword from "../screens/auth/ForgetPassword";
 import { AuthContext } from "../provider/AuthProvider";
+import { getAuth } from "firebase/auth";
 
 // Better put your these secret keys in .env file
 const firebaseConfig = {
@@ -125,8 +126,19 @@ const MainTabs = () => {
 };
 
 export default () => {
+  const firebaseAuth = getAuth();
   const auth = useContext(AuthContext);
-  const user = auth.user;
+  const [user, setUser] = useState(false)
+  // const user = auth.user;
+  useEffect(() => {
+    firebaseAuth.onAuthStateChanged(user_exist => {
+      if(user_exist){
+        setUser(true)
+      }else{
+        console.log(user_exist)
+      }
+    })
+  }, [])
   return (
     <NavigationContainer>
       {user == null && <Loading />}

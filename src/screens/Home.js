@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, Linking, StyleSheet, TouchableOpacity } from "react-native";
 import { getAuth, signOut } from "firebase/auth";
 import { SimpleLineIcons, Feather, Ionicons  } from '@expo/vector-icons';
@@ -15,11 +15,17 @@ import { Camera, CameraType } from "expo-camera";
 
 export default function ({ navigation }) {
   const [type, setType] = useState(CameraType.back);
+  const [isPreview, setIsPreview] = useState(false);
   const { isDarkmode, setTheme } = useTheme();
   const [camera, setCamera] = useState(false)
+  const [cameraData, setCameraData] = useState(false)
+  const [image, setImage] = useState(null);
   const [permission, requestPermission] = Camera.useCameraPermissions();
+  const cameraRef = useRef();
+  const [videoSource, setVideoSource] = useState(null);
 
   useEffect(() => {
+    console.log(image)
     if(!isDarkmode){
       setTheme('dark')
     }
@@ -49,6 +55,25 @@ export default function ({ navigation }) {
     setType(current => (current === CameraType.back ? CameraType.front : CameraType.back));
   }
   const auth = getAuth();
+
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      const options = { quality: 0.5, base64: true, skipProcessing: true };
+      const data = await cameraRef.current.takePictureAsync(options);
+      const source = data.uri;
+      if (source) {
+        await cameraRef.current.pausePreview();
+        setIsPreview(true);
+        console.log("picture source", source);
+      }
+    }
+  };
+  const cancelPreview = async () => {
+    await cameraRef.current.resumePreview();
+    setIsPreview(false);
+    setVideoSource(null);
+  };
+
   return (
     <Layout>
       <View
@@ -79,7 +104,10 @@ export default function ({ navigation }) {
         {camera ? (
           <Section>
           <SectionContent>
-            <Camera type={type}>
+            <Camera 
+            type={type}
+            ref={cameraRef}
+            >
               <View style={{flex:0, height:300, width: 300}}>
                 <TouchableOpacity onPress={toggleCameraType}>
                   <Text>Flip Camera</Text>
@@ -96,8 +124,18 @@ export default function ({ navigation }) {
             <Text fontWeight="bold" style={{ textAlign: "center" }}>
               Open Camera to Capture Plant
             </Text>
-
-            
+            {camera ? (
+              <Button
+              text={isPreview ? "Stop Preview":"Scan"}
+              onPress={isPreview ? cancelPreview : takePicture}
+              style={{
+                marginTop: 10,
+              }}
+            /> 
+            ):(
+              <></>
+            )}
+           
             <Button
               text={camera ? "Close Camera" : "Open Camera"}
               onPress={() => {
@@ -113,7 +151,7 @@ export default function ({ navigation }) {
               }}
             /> 
             
-            
+            {image && <Image source={{uri: image}} style={{flex:1}}/>}
           </SectionContent>
         </Section>
         
