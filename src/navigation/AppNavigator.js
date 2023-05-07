@@ -18,7 +18,7 @@ import Login from "../screens/auth/Login";
 import Register from "../screens/auth/Register";
 import ForgetPassword from "../screens/auth/ForgetPassword";
 import { AuthContext } from "../provider/AuthProvider";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 // Better put your these secret keys in .env file
 const firebaseConfig = {
@@ -128,22 +128,22 @@ const MainTabs = () => {
 export default () => {
   const firebaseAuth = getAuth();
   const auth = useContext(AuthContext);
-  const [user, setUser] = useState(false)
-  // const user = auth.user;
+  // const [user, setUser] = useState(false)
+  const user = auth.user;
   useEffect(() => {
-    firebaseAuth.onAuthStateChanged(user_exist => {
-      if(user_exist){
-        setUser(true)
-      }else{
-        console.log(user_exist)
-      }
-    })
+    console.log(user)
+    // onAuthStateChanged(firebaseAuth, user_exist => {
+    //   if(user_exist){
+    //     setUser(true)
+    //   }else{
+    //     console.log(user_exist)
+    //   }
+    // })
   }, [])
   return (
     <NavigationContainer>
-      {user == null && <Loading />}
-      {user == false && <Auth />}
-      {user == true && <Main />}
+      {user ? <Main /> : <Auth />}
+      {/* {user == true && <Main />} */}
     </NavigationContainer>
   );
 };

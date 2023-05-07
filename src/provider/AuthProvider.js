@@ -24,14 +24,10 @@ const AuthProvider = (props) => {
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-      }}
-    >
+    <AuthContext.Provider value={{ user, setUser }} >
       {props.children}
     </AuthContext.Provider>
   );
 };
 
-export { AuthContext, AuthProvider };
+export { AuthContext, AuthProvider, };

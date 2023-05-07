@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { View, Linking, StyleSheet, TouchableOpacity } from "react-native";
-import { getAuth, signOut } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { SimpleLineIcons, Feather, Ionicons  } from '@expo/vector-icons';
 import {
   Layout,
@@ -12,6 +12,7 @@ import {
   useTheme,
 } from "react-native-rapi-ui";
 import { Camera, CameraType } from "expo-camera";
+import { AuthContext } from "../provider/AuthProvider";
 
 export default function ({ navigation }) {
   const [type, setType] = useState(CameraType.back);
@@ -23,12 +24,22 @@ export default function ({ navigation }) {
   const [permission, requestPermission] = Camera.useCameraPermissions();
   const cameraRef = useRef();
   const [videoSource, setVideoSource] = useState(null);
+  const {setUser, user} = useContext(AuthContext)
 
   useEffect(() => {
-    console.log(image)
+    console.log(user)
     if(!isDarkmode){
       setTheme('dark')
     }
+  }, [])
+  useEffect(() => {
+    // onAuthStateChanged(auth, user => {
+    //   if(user) {
+    //     console.log(user)
+    //   }else{
+    //     console.log("no user")
+    //   }
+    // })
   }, [])
   if (!permission) {
     // Camera permissions are still loading
@@ -73,6 +84,14 @@ export default function ({ navigation }) {
     setIsPreview(false);
     setVideoSource(null);
   };
+  const handleSignout = () => {
+    signOut(auth).then(res => {
+      setUser(false)
+      console.log('Logged out')
+    }).catch(e => {
+      console.log(e)
+    })
+  }
 
   return (
     <Layout>
@@ -88,7 +107,7 @@ export default function ({ navigation }) {
           <Text style={{alignSelf:'center', marginTop: 50, }} fontWeight='bold' size='h1'>Patho-Tech</Text>
         </View>
         <View style={{flexDirection:'row', marginTop: 50, marginBottom: 50}}>
-          <TouchableOpacity onPress={() => {signOut(auth)}} style={{justifyContent:'flex-start', flex:1, marginLeft: 30}}>
+          <TouchableOpacity onPress={() => handleSignout()} style={{justifyContent:'flex-start', flex:1, marginLeft: 30}}>
             <SimpleLineIcons name="logout" size={24} color={isDarkmode ? "#fff" : '#000'}  />
           </TouchableOpacity>
           {isDarkmode ? (
