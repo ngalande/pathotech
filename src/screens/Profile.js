@@ -12,7 +12,7 @@ export default function ({ navigation }) {
 					justifyContent: 'center',
 				}}
 			>
-				<Text>This is the Profile tab</Text>
+				<Text>Profile tab</Text>
 			</View>
 		</Layout>
 	);
