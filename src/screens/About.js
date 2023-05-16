@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View, Image } from 'react-native';
 // import { Layout, Text } from 'react-native-rapi-ui';
 import * as tf from '@tensorflow/tfjs';
-import {bundleResourceIO, decodeJpeg} from '@tensorflow/tfjs-react-native'
+import {fetch, decodeJpeg, bundleResourceIO} from '@tensorflow/tfjs-react-native'
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import {
@@ -22,45 +22,59 @@ const modelWeights3 = require('../modeljs/group1-shard3of4.bin')
 const modelWeights4 = require('../modeljs/group1-shard4of4.bin')
 export default function ({ navigation }) {
 	const [image, setImage] = useState(null);
+	const [model, setModel] = useState(null);
+	const [isTfReady, setIsTfReady] = useState(false);
+  	const [result, setResult] = useState('');
 	useEffect(() => {
 		console.log('first')
 	}, [])
-	const loadModel = async() => {
-		
-		const model = await tf.loadLayersModel(
-			bundleResourceIO(modelJSON, [modelWeights1, modelWeights2, modelWeights3, modelWeights4])
-		).catch(e => {
-			console.log("[LOADING ERROR] info:",e)
-		})
-		return model
+	
+	const load = async(img) =>{
+		try{
+			await tf.ready()
+			if(isTfReady){
+				const modelDat = await tf.loadLayersModel(
+					bundleResourceIO(modelJSON, [modelWeights1, modelWeights2, modelWeights3, modelWeights4])
+				).catch(e => {
+					console.log("[LOADING ERROR] info:",e)
+				})
+				setIsTfReady(true)
+				setModel(modelDat)
+			}
 
+			const weights = [modelWeights1, modelWeights2, modelWeights3, modelWeights4]
+			const modelConfig = { modelJSON, weights };
+			const modelDat = await tf.loadGraphModel(modelConfig, {fromTFHub: true} ).catch(e => {
+				console.log("[LOADING ERROR] info:",e)
+			})
+			// start inference
+			// const img = image
+			// console.log(img)
+			// const image = require('../../assets/forget.png')
+			// const imageAssetPath = Image.resolveAssetSource(image)
+			// const img64 = await FileSystem.readAsStringAsync(uri, {encoding:FileSystem.EncodingType.Base64})
+			const img64 = await FileSystem.readAsStringAsync(img, {encoding:FileSystem.EncodingType.Base64})
+			const imgBuffer =  tf.util.encodeString(img64, 'base64').buffer
+			// const raw = new Uint8Array(imgBuffer)
+
+			// const response = await fetch(imageAssetPath.uri, {}, {isBinary: true})
+			// const imageDataArrayBuffer = await response.arrayBuffer()
+			const imageData = new Uint8Array(imgBuffer)
+			const imageTensor = decodeJpeg(imageData)
+			console.log(imageTensor)
+			const prediction = await modelDat.executeAsync(imageTensor)
+			console.log(prediction)
+			// const tets
+			if (prediction && prediction.length > 0) {
+				console.log(prediction)
+				// setResult(
+				//   `${prediction[0].className} (${prediction[0].probability.toFixed(3)})`
+				// );
+			  }
+		}catch(e){
+			console.log(e)
+		}
 	}
-	const inference = async(batch, model, imageTensor) => {
-		const predictionsdata = model.predict(imageTensor)
-		let pred = predictionsdata.split(batch)
-		// console.log(predictionsdata)
-		return pred
-		// const model = await tf.loadLayersModel(modelURL)
-		// model.summary()
-	}
-	const transformImageToTensor = async (uri)=>{
-		console.log(uri)
-		//.ts: const transformImageToTensor = async (uri:string):Promise<tf.Tensor>=>{
-		//read the image as base64
-		  const img64 = await FileSystem.readAsStringAsync(uri, {encoding:FileSystem.EncodingType.Base64})
-		  const imgBuffer =  tf.util.encodeString(img64, 'base64').buffer
-		  const raw = new Uint8Array(imgBuffer)
-		  let imgTensor = decodeJpeg(raw)
-		  const scalar = tf.scalar(255)
-		  //resize the image
-		  imgTensor = tf.image.resizeNearestNeighbor(imgTensor, [224, 224])
-		  //normalize; if a normalization layer is in the model, this step can be skipped
-		  const tensorScaled = imgTensor.div(scalar)
-		  console.log(tensorScaled)
-		//final shape of the rensor
-		  const img = tf.reshape(tensorScaled, [1,300,300,3])
-		  return img
-	  } 
 	const pickImage = async () => {
 		console.log('result');
 		// No permissions request is necessary for launching the image library
@@ -73,20 +87,13 @@ export default function ({ navigation }) {
 	
 		
 		if (!result.canceled) {
-			getPredictions(result.assets[0].uri)
 			console.log(result.assets[0].uri);
+			load(result.assets[0].uri)
 		  setImage(result.assets[0].uri);
 		}
 	  };
 	
-	const getPredictions = async (image)=>{
-		await tf.ready()
-		const model = await loadModel()
-		const tensor_image = await transformImageToTensor(image)
-		const predictions = await inference(1, model, tensor_image)
-		console.log(predictions)
-		return predictions    
-	}
+
 	return (
 		<Layout>
 			<View
