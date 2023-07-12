@@ -1,7 +1,9 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { View, Linking, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Linking, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { SimpleLineIcons, Feather, Ionicons  } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import {
   Layout,
   Button,
@@ -13,13 +15,14 @@ import {
 } from "react-native-rapi-ui";
 import { Camera, CameraType } from "expo-camera";
 import { AuthContext } from "../provider/AuthProvider";
+import axios from "axios";
 
 export default function ({ navigation }) {
   const [type, setType] = useState(CameraType.back);
   const [isPreview, setIsPreview] = useState(false);
   const { isDarkmode, setTheme } = useTheme();
   const [camera, setCamera] = useState(false)
-  const [cameraData, setCameraData] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [image, setImage] = useState(null);
   const [permission, requestPermission] = Camera.useCameraPermissions();
   const cameraRef = useRef();
@@ -33,6 +36,7 @@ export default function ({ navigation }) {
     }
   }, [])
   useEffect(() => {
+    // detectImage()
     // onAuthStateChanged(auth, user => {
     //   if(user) {
     //     console.log(user)
@@ -93,6 +97,57 @@ export default function ({ navigation }) {
     })
   }
 
+  const detectImage = async(file, type) => {
+    setIsLoading(true)
+    console.log(type)
+    const payload = new FormData()
+    payload.append('file', {
+        uri: file,
+        name: 'plant.jpeg',
+        type: 'image/jpeg'
+      })
+    console.log(payload._parts)
+    // axios.post('http://54.215.47.76:3000/predict', payload, {headers: {
+    //   'Content-Type': 'multipart/form-data'
+    // }})
+    //   .then(res => {
+    //     console.log(res.data)
+    //     setIsLoading(false)
+    //   }).catch(e => {
+    //     setIsLoading(false)
+    //     console.log(e.response.data)
+    //   })
+      const test = axios.get('http://54.215.47.76:3000/')
+        .then(res => {
+          console.log(res.data)
+        }).catch(e => {
+          console.log(e)
+        })
+      console.log(await test)
+  }
+
+  const pickImage = async () => {
+		console.log('result');
+		// No permissions request is necessary for launching the image library
+		let result = await ImagePicker.launchImageLibraryAsync({
+		  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+		  allowsEditing: true,
+		  aspect: [4, 3],
+		  quality: 1,
+		});
+	
+
+		if (!result.canceled) {
+      
+      const imageURL = result.assets[0].uri
+      const slicedURI = imageURL.slice(-6)
+      const type = slicedURI.substring(slicedURI.indexOf('.')+1)
+			// console.log(type);
+      detectImage(imageURL, type)
+		  // setImage(imageURL);
+		}
+	  };
+
   return (
     <Layout>
       <View
@@ -140,19 +195,33 @@ export default function ({ navigation }) {
         )}
         <Section style={{marginTop: 20}}>
           <SectionContent>
-            <Text fontWeight="bold" style={{ textAlign: "center" }}>
-              Open Camera to Capture Plant
-            </Text>
+            
             {camera ? (
-              <Button
-              text={isPreview ? "Stop Preview":"Scan"}
-              onPress={isPreview ? cancelPreview : takePicture}
-              style={{
-                marginTop: 10,
-              }}
-            /> 
+              <>
+                <Text fontWeight="bold" style={{ textAlign: "center" }}>
+                  Scan Plant
+                </Text>
+                <Button
+                text={isPreview ? "Stop Preview":"Scan"}
+                onPress={isPreview ? cancelPreview : takePicture}
+                style={{
+                  marginTop: 10,
+                }}
+              /> 
+              
+              </>
             ):(
-              <></>
+              <>
+                {isLoading ? (
+                  <Text>Loading</Text>
+
+                ):(
+                  <></>
+                )}
+                <Text fontWeight="bold" style={{ textAlign: "center" }}>
+                  Open Camera to Capture Plant
+                </Text>
+              </>
             )}
            
             <Button
@@ -171,6 +240,20 @@ export default function ({ navigation }) {
             /> 
             
             {image && <Image source={{uri: image}} style={{flex:1}}/>}
+            {camera ? (
+              <></>
+            ):(
+              <>
+                <Text fontWeight="bold" style={{ textAlign: "center", marginTop: 20, marginBottom: 5 }}>Or Select Image to scan</Text>
+                <Button
+                text={"Select Image"}
+                onPress={() => {pickImage()}}
+                style={{
+                  marginTop: 10,
+                }}
+                /> 
+              </>
+            )}
           </SectionContent>
         </Section>
         
