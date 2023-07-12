@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { View, Linking, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import { View, Linking, StyleSheet, TouchableOpacity, Platform, Image, Alert } from "react-native";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { SimpleLineIcons, Feather, Ionicons  } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,6 +22,8 @@ export default function ({ navigation }) {
   const [isPreview, setIsPreview] = useState(false);
   const { isDarkmode, setTheme } = useTheme();
   const [camera, setCamera] = useState(false)
+  const [condition, setCondition] = useState(null)
+  const [disease, setDisease] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [image, setImage] = useState(null);
   const [permission, requestPermission] = Camera.useCameraPermissions();
@@ -111,7 +113,18 @@ export default function ({ navigation }) {
       'Content-Type': 'multipart/form-data'
     }})
       .then(res => {
-        console.log(res.data)
+        if(res.data.success == true){
+          console.log(res.data)
+          if(res.data.predictions.probability >= 0.5){
+            setDisease(res.data.predictions.class)
+          }else{
+            Alert.alert('Plant not clear', 'Please capture a clear plant')
+          }
+
+
+        }else{
+          Alert.alert('Error', 'An error occurred while scanning the plant, please try again')
+        }
         setIsLoading(false)
       }).catch(e => {
         setIsLoading(false)
@@ -169,6 +182,22 @@ export default function ({ navigation }) {
           </TouchableOpacity>
           )}
         </View>
+        {camera ? (
+          <></>
+        ):(
+          <Section style={{width:270, height: 270}}>
+            <SectionContent>
+              <Image 
+                resizeMode="contain"
+                style={{
+                  height: '100%',
+                  width: '100%',
+                }}
+                source={require('../../assets/good-plant.png')}
+              />
+            </SectionContent>
+          </Section>
+        )}
         {camera ? (
           <Section>
           <SectionContent>
