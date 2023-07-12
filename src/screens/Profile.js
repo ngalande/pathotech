@@ -116,6 +116,7 @@ export default function ({ navigation }) {
 					justifyContent: 'center',
 				}}
 			>
+<<<<<<< HEAD
 				<Text>This is the Profile tab</Text>
 
 				<Button
@@ -126,6 +127,9 @@ export default function ({ navigation }) {
 						}}
 						/> 
 				
+=======
+				<Text>Profile tab</Text>
+>>>>>>> 2b7b6fb6eb0a20f0bcfdaa09ac0b5910bf2a17b7
 			</View>
 		</Layout>
 	);
