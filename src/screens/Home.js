@@ -103,27 +103,21 @@ export default function ({ navigation }) {
     const payload = new FormData()
     payload.append('file', {
         uri: file,
-        name: 'plant.jpeg',
-        type: 'image/jpeg'
+        name: `plant.${type}`,
+        type: `image/${type}`
       })
-    console.log(payload._parts)
-    // axios.post('http://54.215.47.76:3000/predict', payload, {headers: {
-    //   'Content-Type': 'multipart/form-data'
-    // }})
-    //   .then(res => {
-    //     console.log(res.data)
-    //     setIsLoading(false)
-    //   }).catch(e => {
-    //     setIsLoading(false)
-    //     console.log(e.response.data)
-    //   })
-      const test = axios.get('http://54.215.47.76:3000/')
-        .then(res => {
-          console.log(res.data)
-        }).catch(e => {
-          console.log(e)
-        })
-      console.log(await test)
+    // console.log(payload._parts)
+    axios.post('http://54.215.47.76:3000/predict', payload, {headers: {
+      'Content-Type': 'multipart/form-data'
+    }})
+      .then(res => {
+        console.log(res.data)
+        setIsLoading(false)
+      }).catch(e => {
+        setIsLoading(false)
+        console.log(e.response.data)
+      })
+      // console.log('first')
   }
 
   const pickImage = async () => {
@@ -132,7 +126,7 @@ export default function ({ navigation }) {
 		let result = await ImagePicker.launchImageLibraryAsync({
 		  mediaTypes: ImagePicker.MediaTypeOptions.Images,
 		  allowsEditing: true,
-		  aspect: [4, 3],
+		  aspect: [3, 4],
 		  quality: 1,
 		});
 	
