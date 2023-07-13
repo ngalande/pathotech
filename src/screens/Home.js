@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { View, Linking, StyleSheet, TouchableOpacity, Platform, Image, Alert } from "react-native";
+import { View, Linking, StyleSheet, TouchableOpacity, Platform, Image, Alert, ActivityIndicator } from "react-native";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { SimpleLineIcons, Feather, Ionicons  } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,6 +22,7 @@ export default function ({ navigation }) {
   const [isPreview, setIsPreview] = useState(false);
   const { isDarkmode, setTheme } = useTheme();
   const [camera, setCamera] = useState(false)
+  const [scanned, setScanned] = useState(false)
   const [condition, setCondition] = useState(null)
   const [disease, setDisease] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -32,21 +33,15 @@ export default function ({ navigation }) {
   const {setUser, user} = useContext(AuthContext)
 
   useEffect(() => {
-    console.log(user)
+    // console.log(user)
     if(!isDarkmode){
       setTheme('dark')
     }
   }, [])
   useEffect(() => {
-    // detectImage()
-    // onAuthStateChanged(auth, user => {
-    //   if(user) {
-    //     console.log(user)
-    //   }else{
-    //     console.log("no user")
-    //   }
-    // })
-  }, [])
+    // setIsPreview(false)
+    console.log('[MINE]',isLoading)
+  }, [isLoading])
   if (!permission) {
     // Camera permissions are still loading
     return <View />;
@@ -79,9 +74,15 @@ export default function ({ navigation }) {
       const data = await cameraRef.current.takePictureAsync(options);
       const source = data.uri;
       if (source) {
-        await cameraRef.current.pausePreview();
-        setIsPreview(true);
-        console.log("picture source", source);
+        // await cameraRef.current.pausePreview();
+        // setIsPreview(true);
+        // const imageURL = result.assets[0].uri
+        const slicedURI = source.slice(-6)
+        const type = slicedURI.substring(slicedURI.indexOf('.')+1)
+        setCamera(false)
+        setScanned(true)
+        detectImage(source, type)
+        console.log("picture source", type);
       }
     }
   };
@@ -101,7 +102,7 @@ export default function ({ navigation }) {
 
   const detectImage = async(file, type) => {
     setIsLoading(true)
-    console.log(type)
+    // console.log(type)
     const payload = new FormData()
     payload.append('file', {
         uri: file,
@@ -115,26 +116,40 @@ export default function ({ navigation }) {
       .then(res => {
         if(res.data.success == true){
           console.log(res.data)
-          if(res.data.predictions.probability >= 0.5){
+          if(res.data.predictions.probability >= 0.6){
             setDisease(res.data.predictions.class)
+            if(res.data.predictions.class.includes('healthy')){
+              setIsLoading(false)
+              setCondition('healthy')
+            }else{
+              setIsLoading(false)
+              setCondition('notHealthy')
+            }
           }else{
+            setScanned(false)
+            setIsLoading(false)
             Alert.alert('Plant not clear', 'Please capture a clear plant')
           }
 
 
         }else{
+          setIsLoading(false)
           Alert.alert('Error', 'An error occurred while scanning the plant, please try again')
         }
-        setIsLoading(false)
+        
       }).catch(e => {
+        setScanned(false)
         setIsLoading(false)
-        console.log(e.response.data)
+        Alert.alert('Scan Error', 'Please select another image to scan')
+        console.log('ERROR',e.response.data)
       })
       // console.log('first')
   }
-
+  const clear = () => {
+    setScanned(false)
+  }
   const pickImage = async () => {
-		console.log('result');
+		// console.log('result');
 		// No permissions request is necessary for launching the image library
 		let result = await ImagePicker.launchImageLibraryAsync({
 		  mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -150,6 +165,7 @@ export default function ({ navigation }) {
       const slicedURI = imageURL.slice(-6)
       const type = slicedURI.substring(slicedURI.indexOf('.')+1)
 			// console.log(type);
+      setScanned(true)
       detectImage(imageURL, type)
 		  // setImage(imageURL);
 		}
@@ -182,21 +198,62 @@ export default function ({ navigation }) {
           </TouchableOpacity>
           )}
         </View>
-        {camera ? (
-          <></>
-        ):(
-          <Section style={{width:270, height: 270}}>
+        {!scanned ? (
+          <>
+          {isLoading ? (
+            <Section >
             <SectionContent>
-              <Image 
-                resizeMode="contain"
-                style={{
-                  height: '100%',
-                  width: '100%',
-                }}
-                source={require('../../assets/good-plant.png')}
-              />
+              <ActivityIndicator size={100} color="#00ff00" />
+              <Text style={{justifyContent: 'center', alignItems:'center', display:'flex'}}>Scanning...</Text>
             </SectionContent>
           </Section>
+          ):(
+            <></>
+          )}
+            
+          </>
+        ):(
+          <>
+            {isLoading ? (
+              <Section >
+              <SectionContent>
+                <ActivityIndicator size={100} color="#00ff00" />
+                <Text style={{justifyContent: 'center', alignItems:'center', display:'flex'}}>Scanning...</Text>
+              </SectionContent>
+            </Section>
+            ):(
+              <>
+              {condition == 'healthy' ? (
+              <Section style={{width:270, height: 270}}>
+              <SectionContent>
+                <Image 
+                  resizeMode="contain"
+                  style={{
+                    height: '100%',
+                    width: '100%',
+                  }}
+                  source={require('../../assets/good-plant.png')}
+                />
+              </SectionContent>
+            </Section>
+            ):(
+              <Section style={{width:270, height: 270}}>
+              <SectionContent>
+                <Image 
+                  resizeMode="contain"
+                  style={{
+                    height: '100%',
+                    width: '100%',
+                  }}
+                  source={require('../../assets/bad-plant.png')}
+                />
+              </SectionContent>
+            </Section>
+            )}</>
+            )}
+            
+            
+          </>
         )}
         {camera ? (
           <Section>
@@ -218,8 +275,17 @@ export default function ({ navigation }) {
         )}
         <Section style={{marginTop: 20}}>
           <SectionContent>
-            
-            {camera ? (
+            {scanned ? (
+              <Button
+              text={"Capture new plant"}
+              onPress={() => {clear()}}
+              style={{
+                marginTop: 10,
+              }}
+              /> 
+            ):(
+              <>
+                {camera ? (
               <>
                 <Text fontWeight="bold" style={{ textAlign: "center" }}>
                   Scan Plant
@@ -236,18 +302,21 @@ export default function ({ navigation }) {
             ):(
               <>
                 {isLoading ? (
-                  <Text>Loading</Text>
+                  <ActivityIndicator size="large" color="#00ff00" />
 
                 ):(
                   <></>
                 )}
+                
                 <Text fontWeight="bold" style={{ textAlign: "center" }}>
                   Open Camera to Capture Plant
                 </Text>
               </>
             )}
-           
-            <Button
+            
+            {camera ? (
+              <>
+                <Button
               text={camera ? "Close Camera" : "Open Camera"}
               onPress={() => {
                 if(camera){
@@ -261,13 +330,39 @@ export default function ({ navigation }) {
                 marginTop: 10,
               }}
             /> 
+              </>
+            ):(
+              <TouchableOpacity 
+                style={{justifyContent:'center', alignItems:'center'}}
+                onPress={() => {
+                  if(camera){
+                    setCamera(false)
+                  }else{
+                    setCamera(true)
+  
+                  }
+                }}
+              >
+                <Image 
+                  resizeMode="contain"
+                  style={{
+                    height: 150,
+                    width: 150,
+                  }}
+                  source={require('../../assets/scanner.png')}
+                />
+            </TouchableOpacity>
+            )}
+            
             
             {image && <Image source={{uri: image}} style={{flex:1}}/>}
             {camera ? (
               <></>
             ):(
               <>
-                <Text fontWeight="bold" style={{ textAlign: "center", marginTop: 20, marginBottom: 5 }}>Or Select Image to scan</Text>
+                <Text fontWeight="bold" style={{ textAlign: "center", marginTop: 20, marginBottom: 5 }}>
+                  Or Select Image to scan
+                  </Text>
                 <Button
                 text={"Select Image"}
                 onPress={() => {pickImage()}}
@@ -275,8 +370,12 @@ export default function ({ navigation }) {
                   marginTop: 10,
                 }}
                 /> 
+                
               </>
             )}
+              </>
+            )} 
+            
           </SectionContent>
         </Section>
         
